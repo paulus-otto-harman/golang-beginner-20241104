@@ -17,7 +17,7 @@ func (repo *Todo) Get(session model.Session) ([]model.Todo, error) {
 	query := `SELECT todos.id, description,completed
 				FROM todos
 				JOIN sessions ON todos.user_id=sessions.user_id
-				WHERE sessions.id=$1 AND todos.deleted_at IS NULL`
+				WHERE sessions.id=$1 AND sessions.expired_at IS NULL AND todos.deleted_at IS NULL`
 
 	rows, err := repo.Db.Query(query, session.Id)
 	var todos []model.Todo
@@ -39,7 +39,7 @@ func (repo *Todo) Create(todo *model.Todo, session model.Session) error {
 	query := `INSERT INTO todos (description, user_id) 
 				SELECT $1,user_id
 				FROM sessions
-				WHERE id=$2
+				WHERE id=$2 AND sessions.expired_at IS NULL
     			RETURNING id`
 
 	if err := repo.Db.QueryRow(query, todo.Description, session.Id).Scan(&todo.Id); err != nil {
@@ -52,7 +52,7 @@ func (repo *Todo) Update(todo *model.Todo, session model.Session) error {
 	query := `UPDATE todos
 				SET completed=NOT completed, updated_at=NOW()
 				FROM sessions
-				WHERE todos.user_id=sessions.user_id AND todos.id=$1 AND sessions.id=$2
+				WHERE todos.user_id=sessions.user_id AND todos.id=$1 AND sessions.id=$2 AND sessions.expired_at IS NULL
 				RETURNING completed`
 
 	if err := repo.Db.QueryRow(query, todo.Id, session.Id).Scan(&todo.Completed); err != nil {
@@ -65,7 +65,7 @@ func (repo *Todo) Delete(todo *model.Todo, session model.Session) error {
 	query := `UPDATE todos
 				SET deleted_at=NOW()
 				FROM sessions
-				WHERE todos.user_id=sessions.user_id AND todos.id=$1 AND sessions.id=$2 AND deleted_at IS NULL
+				WHERE todos.user_id=sessions.user_id AND todos.id=$1 AND sessions.id=$2 AND sessions.expired_at IS NULL AND deleted_at IS NULL
 				RETURNING todos.id, todos.description`
 
 	if err := repo.Db.QueryRow(query, todo.Id, session.Id).Scan(&todo.Id, &todo.Description); err != nil {
