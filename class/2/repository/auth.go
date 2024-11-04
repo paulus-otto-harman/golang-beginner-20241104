@@ -34,7 +34,7 @@ func (repo *Auth) Logout(session *model.Session) (int, error) {
 }
 
 func (repo *Auth) Authorize(session model.Session) error {
-	query := `SELECT user_id FROM sessions WHERE id = $1`
+	query := `SELECT user_id FROM sessions WHERE id = $1 AND expired_at IS NULL`
 	err := repo.Db.QueryRow(query, session.Id).Scan(&session.User.Id)
 	if err != nil {
 		return err
